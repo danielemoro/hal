@@ -1,0 +1,15 @@
+// REMEMBER TO RENAME THIS FILE TO tokens.json
+
+{
+  // Reddit tokens. Find all information here https://www.reddit.com/prefs/apps
+  // More info: https://praw.readthedocs.io/en/latest/getting_started/configuration/options.html#basic-configuration-options
+  "client_id": "put here",
+  "client_secret": "put here",
+  "password": "put here",
+  "user_agent": "put here",
+  "username": "put here",
+
+  // Slack tokens. Find here https://api.slack.com/apps/
+  // This is for the OAuth Access Token of the bot Slack app
+  "slack_token" : "put here"
+}
