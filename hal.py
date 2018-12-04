@@ -6,6 +6,7 @@ import re
 import pickle
 from pprint import pprint
 import commentjson
+import time
 
 
 class HAL():
@@ -92,6 +93,17 @@ class HAL():
                 return mem['real_name']
         return None
 
+    def get_last_k_messages_in_channel(self, channel_id, k):
+        raw_history = self.slack.api_call(
+            "conversations.history",
+            channel=channel_id,
+            count=k
+        )
+        try:
+            return raw_history['messages']
+        except Exception:
+            print(raw_history)
+
     def find_channel_id(self, channel_name):
         def func():
             return self.slack.api_call("conversations.list", types="public_channel, private_channel, mpim, im")["channels"]
@@ -120,9 +132,48 @@ class HAL():
         else:
             return True
 
-    def send_discussion_starter(self):
-        return self.send_message("Daniele Moro", self.get_discussion_starters())
+    def next_question(self, destination_channel, admin):
+        admin_channel_id = self.find_channel_id(admin)
 
+        question = self.get_discussion_starters()
+        print("Asking {} if I can sent {}".format(admin, question))
+        self.send_message(admin, "Can I send this message to {}?".format(destination_channel))
+        self.send_message(admin, question)
+
+        def check_if_approved():
+            last_messages = self.get_last_k_messages_in_channel(admin_channel_id, 1)
+            for m in last_messages:
+                if 'user' in m:
+                    print("Found response from", admin, ": ", m['text'])
+                    if m['text'].lower() in ['yes', 'good', 'ok', 'sure', 'yep']:
+                        print("Sending", question, "to", destination_channel)
+                        self.send_message(admin, "SENDING")
+                        if not self.send_message(destination_channel, question):
+                            print("FAILED")
+                    elif m['text'].lower() in ['quit', 'stop']:
+                        print("GOODBYE")
+                        self.send_message(admin, "GOODBYE")
+                        sys.exit()
+                    else:
+                        self.send_message(admin, "NOT SENDING")
+                        self.next_question(destination_channel, admin)
+                    return True
+            print("No response...")
+            return False
+
+        waiting = True
+        count = 2
+        while waiting:
+            count += 1
+            time.sleep(count ** 2)
+            if check_if_approved():
+                return
+
+    def start(self, destination_channel="Daniele Moro", admin="Daniele Moro", interval=10):
+        waiting = True
+        while waiting:
+            self.next_question(destination_channel=destination_channel, admin=admin)
+            time.sleep(interval)
 
 hal = HAL()
-hal.send_discussion_starter()
+dan = hal.start()
