@@ -1,6 +1,6 @@
 from slackclient import SlackClient
 from pprint import pprint
-import os
+import os, sys
 import praw
 import re
 import pickle
@@ -23,10 +23,10 @@ class HAL():
     def init_reddit(self):
         tokens = self.load_tokens()
         self.reddit = praw.Reddit(client_id=tokens['client_id'],
-                             client_secret=tokens['client_secret'],
-                             password=tokens['password'],
-                             user_agent=tokens['user_agent'],
-                             username=tokens['username'])
+                                  client_secret=tokens['client_secret'],
+                                  password=tokens['password'],
+                                  user_agent=tokens['user_agent'],
+                                  username=tokens['username'])
 
         if self.reddit.user.me() != "daniele_moro":
             raise Exception("Could not connect to Reddit")
@@ -68,13 +68,17 @@ class HAL():
         pickle.dump([], open("sent_questions.pkl", "wb"))
 
     def access_cache(self, name, func, update=False):
-        if update:
-            data = func()
-            pickle.dump(data, open('cache/' + str(name) + ".pkl", 'wb'))
-            return data
         try:
+            if update:
+                data = func()
+                pickle.dump(data, open('cache/' + str(name) + ".pkl", 'wb'))
+                return data
+
             return pickle.load(open('cache/' + str(name) + ".pkl", 'rb'))
         except FileNotFoundError:
+            if not os.path.exists('cache/'):
+                os.makedirs('cache/')
+
             # force update
             return self.access_cache(name, func, True)
 
